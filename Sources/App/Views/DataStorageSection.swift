@@ -32,8 +32,7 @@ struct DataStorageSection: View {
             subtitle: formatBytes(report.totalDataSize),
             headerAccessory: report.dataLocations.isEmpty ? nil : AnyView(
                 Button("Reset All Data") { onReset(allDataCategories, "all data") }
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
+                    .resetButtonStyle()
                     .focusable(false)
                     .disabled(isResetting)
             )
@@ -41,10 +40,11 @@ struct DataStorageSection: View {
             if report.dataLocations.isEmpty {
                 Text("No on-disk data found for this app.")
                     .foregroundStyle(.secondary)
-                    .font(.callout)
+                    .font(.body)
             } else {
-                VStack(spacing: 12) {
-                    ForEach(grouped, id: \.category) { group in
+                VStack(spacing: 0) {
+                    ForEach(Array(grouped.enumerated()), id: \.element.category) { index, group in
+                        if index > 0 { Divider() }
                         categoryGroup(group.category, group.locations)
                     }
                 }
@@ -52,31 +52,32 @@ struct DataStorageSection: View {
         }
     }
 
+    // A flat row group (no nested card) so the data locations read as part of
+    // the section, not a detached container-in-a-container.
     private func categoryGroup(_ category: DataCategory, _ locations: [DataLocation]) -> some View {
         let total = locations.reduce(Int64(0)) { $0 + $1.sizeBytes }
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(category.label)
-                    .font(.subheadline.weight(.medium))
+                    .font(.body.weight(.medium))
                 Text(formatBytes(total))
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Button("Reset") { onReset([resetCategory(for: category)], category.label) }
-                    .controlSize(.small)
+                    .resetButtonStyle()
                     .focusable(false)
                     .disabled(isResetting)
             }
             ForEach(locations) { location in
                 Text(abbreviateHome(location.path))
-                    .font(.caption)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(10)
-        .background(.quaternary.opacity(0.4), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, DS.rowPadding)
     }
 }

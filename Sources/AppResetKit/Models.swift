@@ -306,12 +306,29 @@ public struct ResetResult: Sendable, Codable, Hashable, Identifiable {
     public let succeeded: Bool
     public let skipped: Bool
     public let message: String?
+    /// Where a trashed file landed in the user's Trash, so it can be restored.
+    /// `nil` for permanent deletes and non-file actions.
+    public let trashedPath: String?
 
-    public init(item: ResetItem, succeeded: Bool, skipped: Bool, message: String?) {
+    public init(item: ResetItem, succeeded: Bool, skipped: Bool, message: String?, trashedPath: String? = nil) {
         self.item = item
         self.succeeded = succeeded
         self.skipped = skipped
         self.message = message
+        self.trashedPath = trashedPath
+    }
+}
+
+/// A file moved to the Trash by a reset, paired with its original location so the
+/// GUI can offer a one-click restore.
+public struct TrashedItem: Sendable, Hashable, Identifiable {
+    public var id: String { trashedPath }
+    public let originalPath: String
+    public let trashedPath: String
+
+    public init(originalPath: String, trashedPath: String) {
+        self.originalPath = originalPath
+        self.trashedPath = trashedPath
     }
 }
 

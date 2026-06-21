@@ -25,26 +25,33 @@ struct SectionCard<Content: View>: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Label(title, systemImage: systemImage)
-                    .font(.headline)
+        VStack(alignment: .leading, spacing: DS.headerSpacing) {
+            // Loop/Luminare-style: the section label lives ABOVE the card as a
+            // small, secondary caption (LuminareSection header treatment), so the
+            // card reads as a clean group of rows and top/bottom rhythm stays even.
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.secondary)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                        .monospacedDigit()
                 }
                 Spacer()
                 headerAccessory
             }
+            .padding(.horizontal, DS.cardCornerRadius / 2)
+
             content()
+                .padding(DS.cardPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .cardSurface()
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(.separator.opacity(0.5), lineWidth: 0.5)
-        )
     }
 }

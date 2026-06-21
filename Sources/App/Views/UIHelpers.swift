@@ -48,17 +48,29 @@ func tccutilServiceName(_ identifier: String) -> String {
     return identifier.hasPrefix(prefix) ? String(identifier.dropFirst(prefix.count)) : identifier
 }
 
-/// Small rounded label used for permission sources and states.
+/// Small rounded pill used for permission sources and TCC states.
+/// Loop/Luminare aesthetic: low-opacity tint fill + a matching hairline stroke,
+/// a fixed height so one- and two-word labels read as one family, and a
+/// tint-driven foreground that keeps contrast in light *and* dark. Pass `help`
+/// for an explanatory hover tooltip.
 struct Badge: View {
     let text: String
     var color: Color = .secondary
+    var help: String? = nil
 
     var body: some View {
-        Text(text)
-            .font(.caption2.weight(.medium))
+        Text(text.uppercased())
+            .font(.caption2.weight(.semibold))
+            .tracking(0.4)
+            .lineLimit(1)
+            .fixedSize()
+            .foregroundStyle(color.opacity(0.95))
             .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(color.opacity(0.15), in: Capsule())
-            .foregroundStyle(color)
+            .frame(height: 18)
+            .background(color.opacity(0.14), in: Capsule())
+            .overlay {
+                Capsule().strokeBorder(color.opacity(0.28), lineWidth: 1)
+            }
+            .help(help ?? "")
     }
 }

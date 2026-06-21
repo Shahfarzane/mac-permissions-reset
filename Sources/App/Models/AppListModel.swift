@@ -1,6 +1,32 @@
 import SwiftUI
 import AppResetKit
 
+/// Which apps the sidebar shows. Replaces the old Apple-only toggle with an
+/// explicit three-way filter the user picks from a dropdown.
+enum AppFilter: String, CaseIterable, Identifiable {
+    case developer   // third-party apps only (not Apple / not in /System)
+    case all         // everything
+    case system      // Apple / system apps only
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .developer: "Installed Apps"
+        case .all: "All Apps"
+        case .system: "System Apps"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .developer: "shippingbox"
+        case .all: "square.grid.2x2"
+        case .system: "apple.logo"
+        }
+    }
+}
+
 /// Drives the sidebar: loads installed apps, search filtering, grouping into
 /// developer vs system apps, and the Full Disk Access state for the banner.
 @MainActor
@@ -10,7 +36,7 @@ final class AppListModel {
 
     var apps: [AppInfo] = []          // all apps (developer + system)
     var search: String = ""
-    var showSystem: Bool = false      // whether the System group is shown
+    var filter: AppFilter = .developer   // which group(s) the sidebar shows
     var isLoading = false
     var hasFullDiskAccess = false
 
@@ -30,15 +56,16 @@ final class AppListModel {
         apps.filter { !isSystem($0) && matchesSearch($0) }
     }
 
-    /// Apple / system apps — shown second, only when `showSystem` or actively searching.
+    /// Apple / system apps — shown for the System and All filters.
     var systemApps: [AppInfo] {
         apps.filter { isSystem($0) && matchesSearch($0) }
     }
 
-    /// While searching, reveal system matches even if the System group is collapsed.
-    var systemGroupVisible: Bool {
-        showSystem || !search.isEmpty
-    }
+    /// The Developer group shows for the Developer and All filters.
+    var showsDeveloperSection: Bool { filter != .system }
+
+    /// The System group shows for the System and All filters.
+    var showsSystemSection: Bool { filter != .developer }
 
     func app(for id: AppInfo.ID?) -> AppInfo? {
         guard let id else { return nil }

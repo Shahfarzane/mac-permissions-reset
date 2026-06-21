@@ -168,8 +168,9 @@ public struct ResetEngine: Sendable {
         }
         return await Offload.run {
             do {
-                try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: nil)
-                return ResetResult(item: item, succeeded: true, skipped: false, message: nil)
+                var resultingURL: NSURL?
+                try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resultingURL)
+                return ResetResult(item: item, succeeded: true, skipped: false, message: nil, trashedPath: resultingURL?.path)
             } catch {
                 return ResetResult(item: item, succeeded: false, skipped: false, message: error.localizedDescription)
             }

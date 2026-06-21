@@ -52,16 +52,24 @@ public struct AppEnumerator: Sendable {
         }
 
         let lastComponent = (path as NSString).lastPathComponent
-        let fallbackName: String
-        if lastComponent.hasSuffix(".app") {
-            fallbackName = String(lastComponent.dropLast(".app".count))
-        } else {
-            fallbackName = lastComponent
+        let fileBaseName: String = lastComponent.hasSuffix(".app")
+            ? String(lastComponent.dropLast(".app".count))
+            : lastComponent
+
+        func cleaned(_ value: String?) -> String? {
+            guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !trimmed.isEmpty else { return nil }
+            return trimmed.hasSuffix(".app") ? String(trimmed.dropLast(".app".count)) : trimmed
         }
 
-        let name = (dict["CFBundleDisplayName"] as? String)
-            ?? (dict["CFBundleName"] as? String)
-            ?? fallbackName
+        // The Finder-facing (localized) bundle name is what the user actually
+        // calls the app, so prefer it over CFBundleName — which is frequently a
+        // short/internal product name. E.g. an Electron app whose bundle is
+        // `Factory.app` but whose CFBundleName is `factory-desktop`.
+        let name = cleaned(FileManager.default.displayName(atPath: path))
+            ?? cleaned(dict["CFBundleDisplayName"] as? String)
+            ?? cleaned(dict["CFBundleName"] as? String)
+            ?? fileBaseName
 
         let version = dict["CFBundleShortVersionString"] as? String
         let build = dict["CFBundleVersion"] as? String
