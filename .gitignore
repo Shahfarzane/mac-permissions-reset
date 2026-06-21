@@ -1,0 +1,28 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Build artifacts
+build/
+*.app/
+*.zip
+DerivedData/
+
+# Generated app icon (run Scripts/make_icon.sh to regenerate)
+# (Icon.icns IS committed so the repo builds without Xcode's icon tooling.)
+
+# macOS
+.DS_Store
+
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+
+# Notarization / signing secrets — never commit
+*.p8
+notary-creds.env
+*.cer
+*.p12
+
+# Local tooling / agent config (not part of the app)
+.claude/
