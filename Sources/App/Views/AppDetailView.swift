@@ -6,6 +6,9 @@ struct AppDetailView: View {
     let app: AppInfo
     @Bindable var model: AppDetailModel
     let fullDiskAccess: Bool
+    /// Height of the title-bar strip (measured at the root), so the identity can
+    /// hug the bottom of the strip in line with the action buttons below it.
+    var stripHeight: CGFloat = 0
 
     @Environment(IconProvider.self) private var icons
     @State private var pending: PendingReset?
@@ -43,7 +46,8 @@ struct AppDetailView: View {
                         )
                     }
                     .padding(.horizontal, DS.contentPadding)
-                    .padding(.vertical, DS.sectionSpacing)
+                    .padding(.top, DS.topBarContentGap)
+                    .padding(.bottom, DS.sectionSpacing)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .defaultScrollAnchor(.top)
@@ -72,6 +76,7 @@ struct AppDetailView: View {
         } message: { item in
             Text(confirmationMessage(for: item))
         }
+        .overlay { stripIdentity }
         .overlay(alignment: .bottom) { statusOverlay }
         .animation(.easeInOut(duration: 0.2), value: model.statusMessage)
         .animation(.easeInOut(duration: 0.2), value: model.isResetting)
@@ -81,29 +86,40 @@ struct AppDetailView: View {
         Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })
     }
 
-    /// App identity (icon + name + bundle id) on the left, reset actions on the
-    /// right. The detail pane is clear of the relocated traffic lights (which sit
-    /// over the sidebar), so this bar uses the full width.
-    private var detailTopBar: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: icons.icon(forPath: app.path))
-                .resizable()
-                .frame(width: 30, height: 30)
-            VStack(alignment: .leading, spacing: 1) {
+    /// App identity (icon + name) lifted UP into the title-bar strip — matching
+    /// the sidebar's "Apps" title — so both panes start at the same height. It's
+    /// an image + text with hit-testing disabled, so sitting in the (draggable)
+    /// title-bar region is safe. The bundle id lives in the Overview section.
+    private var stripIdentity: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(nsImage: icons.icon(forPath: app.path))
+                    .resizable()
+                    .frame(width: 20, height: 20)
                 Text(app.name)
                     .font(.title3.weight(.semibold))
                     .lineLimit(1)
-                Text(app.bundleID)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
             }
-            Spacer(minLength: 12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 16)
+            .padding(.bottom, 4)
+            .frame(height: stripHeight, alignment: .bottom)
+            Spacer(minLength: 0)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    /// Reset actions, hugging just BELOW the title-bar strip (so they stay
+    /// clickable) and right-aligned — landing on the same line as the identity.
+    private var detailTopBar: some View {
+        HStack(spacing: 8) {
+            Spacer()
             detailActions
         }
-        .frame(height: WindowConfigurator.topBarHeight)
+        .frame(height: DS.controlHeight + 4, alignment: .top)
         .padding(.horizontal, 16)
+        .padding(.top, 2)
     }
 
     private var detailActions: some View {
@@ -115,7 +131,7 @@ struct AppDetailView: View {
                 } label: {
                     Label("Restore (\(model.trashedItems.count))", systemImage: "arrow.uturn.backward")
                 }
-                .loopButton(.plain, size: .compact)
+                .loopButton(.plain)
                 .help("Move the \(model.trashedItems.count) trashed item\(model.trashedItems.count == 1 ? "" : "s") back from the Trash")
                 .disabled(model.isResetting)
             }
@@ -129,7 +145,7 @@ struct AppDetailView: View {
                     Image(systemName: "arrow.clockwise")
                 }
             }
-            .loopButton(.plain, size: .compact)
+            .loopIconButton(.plain)
             .help("Re-scan this app")
             .disabled(model.isResetting || model.isLoading)
 
@@ -138,7 +154,7 @@ struct AppDetailView: View {
             } label: {
                 Label("Full Reset…", systemImage: "arrow.counterclockwise")
             }
-            .loopButton(.destructive, size: .compact)
+            .loopButton(.destructive)
             .disabled(model.report == nil || model.isResetting)
         }
         .animation(.easeInOut(duration: 0.2), value: model.trashedItems.isEmpty)

@@ -160,6 +160,12 @@ which it reads from the environment, a git-ignored `notary-creds.env`, or `op ru
 
 ---
 
+## Acknowledgements
+
+AppReset vendors [PermissionFlow](https://github.com/jaywcjlove/PermissionFlow)
+(MIT) to check its own permission status (e.g. Full Disk Access) and guide
+granting it in System Settings. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

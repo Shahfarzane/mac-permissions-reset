@@ -3,8 +3,12 @@ import AppKit
 
 /// Setup banner shown when AppReset itself lacks Full Disk Access. This is about
 /// the tool's own access (required to read the user TCC database) — not a
-/// third-party app's permission — so deep-linking to Settings is appropriate.
+/// third-party app's permission — so it opens AppReset's Permissions panel,
+/// which checks live status and offers the drag-to-grant flow.
 struct FullDiskAccessBanner: View {
+    /// Opens AppReset's Permissions panel.
+    var onManage: () -> Void
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Label("Full Disk Access needed", systemImage: "lock.shield")
@@ -13,17 +17,11 @@ struct FullDiskAccessBanner: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Open Privacy Settings…") { openFullDiskAccessSettings() }
-                .loopButton(.plain, size: .compact)
+            Button("Grant Access…", action: onManage)
+                .loopButton(.prominent)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassEffect(in: .rect(cornerRadius: 14))
-    }
-
-    private func openFullDiskAccessSettings() {
-        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles") {
-            NSWorkspace.shared.open(url)
-        }
     }
 }
