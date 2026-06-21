@@ -38,9 +38,14 @@ if [[ ${#ARCH_LIST[@]} -eq 0 ]]; then
   ARCH_LIST=("$HOST_ARCH")
 fi
 
+# Build all requested architectures in a SINGLE invocation. SwiftPM emits a
+# universal binary directly; building arches one-by-one would clobber the shared
+# .build/<conf> output on this toolchain.
+ARCH_FLAGS=()
 for ARCH in "${ARCH_LIST[@]}"; do
-  swift build -c "$CONF" --arch "$ARCH"
+  ARCH_FLAGS+=(--arch "$ARCH")
 done
+swift build -c "$CONF" "${ARCH_FLAGS[@]}"
 
 APP="$ROOT/${APP_NAME}.app"
 rm -rf "$APP"
@@ -87,12 +92,16 @@ PLIST
 
 build_product_path() {
   local name="$1"
-  local arch="$2"
-  # Recent SwiftPM writes a *native* single-arch build to the default
-  # `.build/$CONF/` directory, while a cross-compiled arch lands under
-  # `.build/<arch>-apple-macosx/$CONF/`. Probe both and return whichever exists.
+  local cap
+  case "$CONF" in
+    release) cap="Release" ;;
+    debug) cap="Debug" ;;
+    *) cap="$CONF" ;;
+  esac
+  # A multi-arch build lands under .build/apple/Products/<Config>/; a single-arch
+  # build lands in .build/<conf>/. Probe both and return whichever exists.
   local candidates=(
-    ".build/${arch}-apple-macosx/$CONF/$name"
+    ".build/apple/Products/$cap/$name"
     ".build/$CONF/$name"
   )
   for candidate in "${candidates[@]}"; do
@@ -101,7 +110,7 @@ build_product_path() {
       return
     fi
   done
-  echo ".build/${arch}-apple-macosx/$CONF/$name"
+  echo ".build/$CONF/$name"
 }
 
 verify_binary_arches() {
@@ -127,21 +136,13 @@ verify_binary_arches() {
 install_binary() {
   local name="$1"
   local dest="$2"
-  local binaries=()
-  for arch in "${ARCH_LIST[@]}"; do
-    local src
-    src=$(build_product_path "$name" "$arch")
-    if [[ ! -f "$src" ]]; then
-      echo "ERROR: Missing ${name} build for ${arch} at ${src}" >&2
-      exit 1
-    fi
-    binaries+=("$src")
-  done
-  if [[ ${#ARCH_LIST[@]} -gt 1 ]]; then
-    lipo -create "${binaries[@]}" -output "$dest"
-  else
-    cp "${binaries[0]}" "$dest"
+  local src
+  src=$(build_product_path "$name")
+  if [[ ! -f "$src" ]]; then
+    echo "ERROR: Missing ${name} build at ${src}" >&2
+    exit 1
   fi
+  cp "$src" "$dest"
   chmod +x "$dest"
   verify_binary_arches "$dest" "${ARCH_LIST[@]}"
 }
@@ -161,7 +162,7 @@ if [[ -d "$APP_RESOURCES_DIR" ]]; then
 fi
 
 # SwiftPM resource bundles are emitted next to the built binary.
-PREFERRED_BUILD_DIR="$(dirname "$(build_product_path "$APP_BINARY" "${ARCH_LIST[0]}")")"
+PREFERRED_BUILD_DIR="$(dirname "$(build_product_path "$APP_BINARY")")"
 shopt -s nullglob
 SWIFTPM_BUNDLES=("${PREFERRED_BUILD_DIR}/"*.bundle)
 shopt -u nullglob
