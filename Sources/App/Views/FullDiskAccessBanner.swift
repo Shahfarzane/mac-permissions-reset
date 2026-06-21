@@ -14,8 +14,7 @@ struct FullDiskAccessBanner: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Button("Open Privacy Settings…") { openFullDiskAccessSettings() }
-                .controlSize(.small)
-                .buttonStyle(.glass)
+                .loopButton(.plain, size: .compact)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)

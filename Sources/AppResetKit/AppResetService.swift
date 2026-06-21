@@ -174,4 +174,29 @@ public struct AppResetService: Sendable {
     public func execute(_ items: [ResetItem], options: ResetOptions) async -> [ResetResult] {
         await engine.execute(items, options: options)
     }
+
+    /// Moves previously-trashed items back to their original locations.
+    /// Returns the number successfully restored.
+    public func restoreFromTrash(_ items: [TrashedItem]) async -> Int {
+        await Offload.run {
+            let fm = FileManager.default
+            var restored = 0
+            for item in items {
+                let src = URL(fileURLWithPath: item.trashedPath)
+                let dest = URL(fileURLWithPath: item.originalPath)
+                guard fm.fileExists(atPath: src.path) else { continue }
+                do {
+                    try? fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    if fm.fileExists(atPath: dest.path) {
+                        try fm.removeItem(at: dest)
+                    }
+                    try fm.moveItem(at: src, to: dest)
+                    restored += 1
+                } catch {
+                    continue
+                }
+            }
+            return restored
+        }
+    }
 }

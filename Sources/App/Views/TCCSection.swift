@@ -15,20 +15,19 @@ struct TCCSection: View {
             subtitle: "\(report.grants.count)",
             headerAccessory: report.grants.isEmpty ? nil : AnyView(
                 Button("Reset All", action: onResetAll)
-                    .buttonStyle(.glass)
-                    .controlSize(.small)
+                    .resetButtonStyle()
                     .focusable(false)
                     .disabled(isResetting)
             )
         ) {
             if report.grants.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text("No privacy records for this app.")
                         .foregroundStyle(.secondary)
-                        .font(.callout)
+                        .font(.body)
                     if !fullDiskAccess {
                         Text("Grant Full Disk Access to read grants stored in the user database.")
-                            .font(.caption)
+                            .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -40,9 +39,9 @@ struct TCCSection: View {
                     }
                 }
                 Text("Resetting clears the decision so the app asks again next launch. macOS doesn't allow granting another app's permission programmatically.")
-                    .font(.caption2)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
-                    .padding(.top, 4)
+                    .padding(.top, 6)
             }
         }
     }
@@ -51,18 +50,18 @@ struct TCCSection: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(grant.friendlyName)
-                    .font(.callout)
+                    .font(.body)
                 Text("\(grant.service) • \(grant.sourceDB.rawValue)")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
             Badge(text: grant.state.label, color: stateColor(grant.state))
             Button("Reset") { onResetService(grant.service) }
-                .controlSize(.small)
+                .resetButtonStyle()
                 .focusable(false)
                 .disabled(isResetting)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, DS.rowPadding)
     }
 }
