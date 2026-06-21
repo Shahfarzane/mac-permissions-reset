@@ -5,11 +5,16 @@ import AppResetKit
 struct AppListSidebar: View {
     @Bindable var model: AppListModel
     @Binding var selection: AppInfo.ID?
+    /// Height of the title-bar strip (measured at the root), so the title can
+    /// hug the bottom of the strip right above the search field.
+    var stripHeight: CGFloat = 0
     @AppStorage("appearanceMode") private var appearance: AppearanceMode = .system
+    @State private var showingPermissions = false
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
+            Divider()
             List(selection: $selection) {
             if model.showsDeveloperSection {
                 Section {
@@ -45,7 +50,7 @@ struct AppListSidebar: View {
             }
             .listStyle(.sidebar)
             .scrollContentBackground(.hidden)
-            .contentMargins(.top, 0, for: .scrollContent)
+            .contentMargins(.top, DS.topBarContentGap, for: .scrollContent)
             .environment(\.defaultMinListRowHeight, 38)
             .overlay {
                 if model.isLoading && model.apps.isEmpty {
@@ -57,12 +62,30 @@ struct AppListSidebar: View {
 
             appearanceFooter
         }
-        .background(VisualEffectView(material: .sidebar))
+        // The sidebar material — and its trailing separator — fill the whole
+        // column height, up THROUGH the title-bar strip, so the traffic lights
+        // float over the sidebar and the divider meets the top of the window
+        // (Finder / Loop). The content above still respects the safe area, so the
+        // controls stay clickable.
+        .background(alignment: .trailing) {
+            VisualEffectView(material: .sidebar)
+                .overlay(alignment: .trailing) {
+                    Rectangle()
+                        .fill(Color(nsColor: .separatorColor))
+                        .frame(width: 1)
+                }
+                .ignoresSafeArea()
+        }
+        // The title rides up in the strip beside the traffic lights.
+        .overlay { stripTitle }
+        .sheet(isPresented: $showingPermissions) { PermissionsView() }
     }
 
     /// App-level appearance control, pinned at the bottom of the sidebar.
     private var appearanceFooter: some View {
         VStack(spacing: 0) {
+            Divider()
+            permissionsRow
             Divider()
             HStack(spacing: 8) {
                 Text("Appearance")
@@ -85,40 +108,87 @@ struct AppListSidebar: View {
         }
     }
 
-    /// Custom top bar drawn in the strip reserved for the relocated traffic
-    /// lights — replaces the system toolbar so nothing floats over the list.
+    /// Always-available entry to AppReset's own Permissions panel. Shows an
+    /// orange dot when a required permission (Full Disk Access) is still missing.
+    private var permissionsRow: some View {
+        Button { showingPermissions = true } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield")
+                    .foregroundStyle(.secondary)
+                Text("Permissions")
+                    .font(.callout)
+                Spacer()
+                if !model.hasFullDiskAccess {
+                    Circle()
+                        .fill(.orange)
+                        .frame(width: 7, height: 7)
+                        .help("Full Disk Access is not granted")
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The "Apps" title, lifted UP into the title-bar strip beside the traffic
+    /// lights so the top band isn't wasted. It's plain text with hit-testing
+    /// disabled, so sitting in the (draggable) title-bar region is safe — it
+    /// never steals clicks the way an interactive control would. The leading
+    /// inset clears the traffic-light cluster.
+    private var stripTitle: some View {
+        VStack(spacing: 0) {
+            Text("Apps")
+                .font(.title3.weight(.semibold))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, DS.trafficLightInset)
+                .padding(.bottom, 4)
+                .frame(height: stripHeight, alignment: .bottom)
+            Spacer(minLength: 0)
+        }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
+    }
+
+    /// Interactive top bar, sitting just BELOW the title-bar strip (so its
+    /// controls stay clickable): the search field with the filter beside it.
     private var topBar: some View {
         VStack(spacing: 8) {
             HStack(spacing: 8) {
-                Text("Apps")
-                    .font(.title3.weight(.semibold))
-                Spacer()
+                searchField
                 filterMenu
             }
-            .frame(height: WindowConfigurator.topBarHeight)
-
-            HStack(spacing: 6) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search apps", text: $model.search)
-                    .textFieldStyle(.plain)
-                if !model.search.isEmpty {
-                    Button { model.search = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 8))
 
             if !model.hasFullDiskAccess {
-                FullDiskAccessBanner()
+                FullDiskAccessBanner(onManage: { showingPermissions = true })
             }
         }
         .padding(.horizontal, 10)
+        .padding(.top, 4)
         .padding(.bottom, 8)
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField("Search apps", text: $model.search)
+                .textFieldStyle(.plain)
+            if !model.search.isEmpty {
+                Button { model.search = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(height: DS.controlHeight)
+        .frame(maxWidth: .infinity)
+        .background(.quaternary.opacity(0.5), in: .rect(cornerRadius: 8))
     }
 
     private var filterMenu: some View {
@@ -134,10 +204,9 @@ struct AppListSidebar: View {
             }
         } label: {
             Image(systemName: "line.3.horizontal.decrease.circle")
-                .font(.title3)
         }
         .menuStyle(.button)
-        .loopButton(.plain, size: .compact)
+        .loopIconButton(.plain)
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Filter apps — currently \(model.filter.label)")

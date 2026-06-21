@@ -41,7 +41,7 @@ struct DeclaredPermissionsSection: View {
                     Button(expanded ? "Show less" : "Show all \(report.declared.count)") {
                         expanded.toggle()
                     }
-                    .loopButton(.plain, size: .compact)
+                    .loopButton(.plain)
                     .padding(.top, 8)
                 }
             }

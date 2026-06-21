@@ -34,9 +34,6 @@ struct VisualEffectView: NSViewRepresentable {
 /// Loop/Luminare's approach — either regressed light mode or crashed
 /// `NSHostingView`'s dynamic-property machinery, so we avoid both.)
 struct WindowConfigurator: NSViewRepresentable {
-    /// Reserved height of the top bar each column draws.
-    static let topBarHeight: CGFloat = 44
-
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
         for delay in [0.0, 0.05, 0.2, 0.5] {

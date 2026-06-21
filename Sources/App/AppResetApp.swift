@@ -1,5 +1,6 @@
 import SwiftUI
 import AppResetKit
+import PermissionFlowExtendedStatus
 
 @main
 struct AppResetApp: App {
@@ -37,28 +38,41 @@ struct RootView: View {
     @AppStorage("appearanceMode") private var appearance: AppearanceMode = .system
 
     var body: some View {
-        HStack(spacing: 0) {
-            AppListSidebar(model: listModel, selection: $selection)
-                .frame(width: 300)
+        // Measure the title-bar strip height (the safe-area inset reserved for the
+        // traffic lights) ONCE at the root, before the content consumes it, and
+        // hand it to each column so they can lift their title to hug the content
+        // and keep the empty band tight regardless of the OS's title-bar height.
+        GeometryReader { proxy in
+            let strip = proxy.safeAreaInsets.top
+            HStack(spacing: 0) {
+                AppListSidebar(model: listModel, selection: $selection, stripHeight: strip)
+                    .frame(width: 300)
 
-            Divider()
-
-            detail
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                // No Divider here — the sidebar draws its own full-height trailing
+                // separator (in its safe-area-ignoring background layer) so the
+                // line runs all the way up to the top of the window.
+                detail(stripHeight: strip)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Content respects the title-bar safe area so the top bars sit below
+            // the traffic-light strip and stay clickable; the blur backdrop
+            // ignores the safe area so it fills the whole window (strip included).
+            .background(VisualEffectView(material: .underWindowBackground).ignoresSafeArea())
+            .preferredColorScheme(appearance.colorScheme)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // Content respects the title-bar safe area so the top bars sit below the
-        // traffic-light strip and stay clickable; the blur backdrop ignores the
-        // safe area so it fills the whole window (strip included).
-        .background(VisualEffectView(material: .underWindowBackground).ignoresSafeArea())
-        .preferredColorScheme(appearance.colorScheme)
-        .task { await listModel.load() }
+        .task {
+            // Make the optional PermissionFlow status providers (bluetooth, media,
+            // input monitoring, screen recording) available to the registry.
+            PermissionFlowExtendedStatus.register()
+            await listModel.load()
+        }
     }
 
     @ViewBuilder
-    private var detail: some View {
+    private func detail(stripHeight: CGFloat) -> some View {
         if let app = listModel.app(for: selection) {
-            AppDetailView(app: app, model: detailModel, fullDiskAccess: listModel.hasFullDiskAccess)
+            AppDetailView(app: app, model: detailModel, fullDiskAccess: listModel.hasFullDiskAccess, stripHeight: stripHeight)
                 .id(app.id)
         } else {
             ContentUnavailableView(
