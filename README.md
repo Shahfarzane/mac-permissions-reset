@@ -11,8 +11,8 @@ it has actually been granted**, and its **full on-disk footprint**, then resets 
 It ships as one project with two front-ends over a shared core:
 
 - **`appreset`** — a scriptable CLI.
-- **AppReset.app** — a SwiftUI app (macOS 26+, Liquid Glass) with a searchable, grouped
-  app list and a per-app detail view.
+- **AppReset.app** — a SwiftUI app (macOS 26+) with a translucent, Loop-inspired interface,
+  light / dark / system themes, a searchable and filterable app list, and a per-app detail view.
 
 <!-- Add a screenshot here: docs/screenshot.png -->
 
@@ -20,10 +20,11 @@ It ships as one project with two front-ends over a shared core:
 
 ## Features
 
-- **Discover** every installed app, grouped into **Developer** (third-party) and **System**
-  (Apple), with search.
-- **Declared permissions** — the `NS…UsageDescription` strings and sandbox/`tcc.allow`
-  entitlements an app is built to request ("what it *needs*").
+- **Discover** every installed app with search and a filter — **Installed** (third-party),
+  **All**, or **System** (Apple).
+- **Declared permissions** — what an app is built to request ("what it *needs*"), each labeled
+  by source: an **Info.plist** `NS…UsageDescription` string, a code-signing **Entitlement**, or
+  a private **TCC Allow** declaration.
 - **Privacy (TCC) grants** — what the user has actually allowed/denied (Camera, Microphone,
   Contacts, Calendar, Photos, Accessibility, Screen Recording, Full Disk Access, Automation,
   …), read directly from the TCC databases.
@@ -32,7 +33,8 @@ It ships as one project with two front-ends over a shared core:
   with its measured size.
 - **Reset** any subset: privacy permissions (via `tccutil`), `UserDefaults` (via `defaults`
   + a `cfprefsd` flush), and on-disk data — **moved to the Trash by default** (or permanently
-  deleted), with a dry-run preview.
+  deleted), with a dry-run preview. In the app, anything moved to the Trash can be **restored**
+  in one click.
 
 ---
 
